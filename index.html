@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>AI Form Coach — Real-Time Body Tracker</title>
+    <link rel="stylesheet" href="style.css" />
+
+    <!-- ── TensorFlow + MoveNet pose detection (browser OpenCV equivalent) ── -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@4.15.0/dist/tf-core.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter@4.15.0/dist/tf-converter.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl@4.15.0/dist/tf-backend-webgl.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@2.0.0/dist/pose-detection.js"></script>
+</head>
+
+<body>
+
+    <!-- ════════════════════════════════════════════════════════════════════
+       HEADER
+  ════════════════════════════════════════════════════════════════════ -->
+    <div class="header">
+        <h1>⚡ AI FORM COACH</h1>
+        <p><span class="status-dot"></span>Real-time body tracking · AI correction · Video guides</p>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════════════
+       TABS
+  ════════════════════════════════════════════════════════════════════ -->
+    <div class="tabs">
+        <button class="tab" data-tab="workout" onclick="switchTab('workout')">💪 LIVE TRAINING</button>
+        <button class="tab" data-tab="exercises" onclick="switchTab('exercises')">📋 EXERCISE LIBRARY</button>
+        <button class="tab" data-tab="history" onclick="switchTab('history')">📊 HISTORY</button>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════════════
+       WORKOUT TAB
+  ════════════════════════════════════════════════════════════════════ -->
+    <div class="main-content">
+        <div id="workoutTab" class="tab-content">
+
+            <!-- Row 1: Camera + Correction Guide -->
+            <div class="main-grid">
+
+                <!-- ── Camera / Tracker ── -->
+                <div class="card">
+                    <div class="card-title">🎥 LIVE BODY TRACKING</div>
+
+                    <div class="video-wrapper">
+                        <video id="video" autoplay playsinline muted></video>
+                        <canvas id="canvas"></canvas>
+                        <div class="camera-overlay" id="angleDisplay">JOINT ANGLE: —</div>
+                        <div class="no-camera-msg" id="noCameraMsg">
+                            <div class="icon">📷</div>
+                            <div>Start camera to enable AI body tracking</div>
+                            <div style="font-size:0.75rem;font-family:'JetBrains Mono',monospace;color:var(--text-muted);">
+                                Uses MoveNet neural network — no data leaves your device
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Camera buttons -->
+                    <div class="btn-row">
+                        <button class="btn btn-solid" id="startCamBtn" onclick="startCamera()">▶ START CAMERA</button>
+                        <button class="btn btn-danger" id="stopCamBtn" onclick="stopCamera()" disabled>⏹ STOP</button>
+                        <button class="btn" onclick="analyzeCurrentFrame()">📸 ANALYZE FRAME</button>
+                    </div>
+
+                    <!-- Live form feedback -->
+                    <div class="feedback-box">
+                        <div class="feedback-label">🎯 REAL-TIME FORM ANALYSIS</div>
+                        <div id="liveFormText" style="color:var(--text-white);font-size:0.93rem;line-height:1.6;">
+                            Select an exercise below, then start your camera.
+                        </div>
+                    </div>
+
+                    <!-- Form score bar -->
+                    <div class="score-bar-wrap" style="margin-top:10px;">
+                        <div class="score-bar-label">
+                            <span>FORM SCORE</span>
+                            <span id="formScoreNum" style="color:var(--gold-pale);">100</span><span style="color:var(--text-muted);">%</span>
+                        </div>
+                        <div class="score-bar">
+                            <div class="score-fill" id="scoreFill" style="width:100%;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── Form Correction Guide + YouTube ── -->
+                <div class="card" style="overflow-y:auto;max-height:620px;">
+                    <div id="correctionPanel">
+                        <div class="card-title">📋 FORM CORRECTION GUIDE</div>
+                        <p style="color:var(--text-muted);font-size:0.9rem;">
+                            Select an exercise to view step-by-step form cues and video guide.
+                        </p>
+                    </div>
+
+                    <!-- YouTube embed -->
+                    <div class="yt-section" style="margin-top:16px;" id="ytContainer">
+                        <div class="yt-placeholder" style="color:var(--text-muted);">
+                            📹 Select an exercise to load reference video
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Row 2: Exercise Selection -->
+            <div class="card" style="margin-bottom:20px;">
+                <div class="card-title">🏋️ SELECT EXERCISE</div>
+                <div class="exercise-grid" id="exerciseGrid"></div>
+            </div>
+
+            <!-- Row 3: Workout Tracker + AI Chat -->
+            <div class="main-grid">
+
+                <!-- Workout session -->
+                <div class="card">
+                    <div class="card-title">📊 WORKOUT SESSION</div>
+
+                    <div class="stats-row">
+                        <div class="stat-box">
+                            <span class="stat-num" id="repCount">0</span>
+                            <div class="stat-label">TOTAL REPS</div>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-num" id="setCount">0</span>
+                            <div class="stat-label">SETS DONE</div>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-num" id="calorieCount">0</span>
+                            <div class="stat-label">CALORIES</div>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-num" id="formScoreNum2" style="color:var(--gold-pale);">100</span>
+                            <div class="stat-label">FORM %</div>
+                        </div>
+                    </div>
+
+                    <div class="rep-counter" id="repCounter">READY TO TRAIN</div>
+
+                    <!-- Set size selector -->
+                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;justify-content:center;">
+                        <span style="font-size:0.8rem;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;">Target reps:</span>
+                        <select id="targetRepsSelect" onchange="state.targetSetReps = parseInt(this.value)" style="background:var(--bg-elevated);border:1px solid var(--border);color:var(--gold-pale);
+                     border-radius:6px;padding:6px 12px;font-family:'Rajdhani',sans-serif;font-size:1rem;outline:none;">
+              <option value="5">5</option>
+              <option value="8">8</option>
+              <option value="10" selected>10</option>
+              <option value="12">12</option>
+              <option value="15">15</option>
+              <option value="20">20</option>
+            </select>
+                    </div>
+
+                    <div class="btn-row">
+                        <button class="btn btn-solid" id="startSetBtn" onclick="startSet()" style="flex:1;">▶ START SET</button>
+                        <button class="btn btn-danger" onclick="resetWorkout()" style="flex:1;">🔄 RESET</button>
+                    </div>
+                </div>
+
+                <!-- AI Chat Panel -->
+                <div class="ai-panel">
+                    <div class="ai-header">
+                        <span>🤖 AI FORM COACH</span>
+                        <span class="ai-thinking" id="aiThinkingLabel" style="display:none;">thinking…</span>
+                    </div>
+
+                    <div class="ai-messages" id="aiMessages"></div>
+
+                    <div class="ai-input-row">
+                        <input type="text" id="aiInput" placeholder="Ask anything — form tips, muscle groups, corrections…" autocomplete="off" />
+                        <button class="btn btn-solid" onclick="sendAiMessage()" style="white-space:nowrap;">SEND ➤</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ════════════════════════════════════════════════════════════════════
+         EXERCISE LIBRARY TAB
+    ════════════════════════════════════════════════════════════════════ -->
+        <div id="exercisesTab" class="tab-content" style="display:none;">
+            <div id="libraryGrid"></div>
+        </div>
+
+        <!-- ════════════════════════════════════════════════════════════════════
+         HISTORY TAB
+    ════════════════════════════════════════════════════════════════════ -->
+        <div id="historyTab" class="tab-content" style="display:none;">
+            <div class="card">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+                    <div class="card-title">📊 WORKOUT HISTORY</div>
+                    <button class="btn btn-danger" onclick="clearHistory()" style="padding:8px 16px;font-size:0.8rem;">
+            🗑 CLEAR
+          </button>
+                </div>
+                <div class="history-grid" id="historyGrid">
+                    <p style="color:var(--text-muted);padding:20px;">No workout history yet. Start training!</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    <!-- /main-content -->
+
+    <!-- ── SCRIPTS ── -->
+    <script src="exercises.js"></script>
+    <script src="pose.js"></script>
+    <script src="app.js"></script>
+
+</body>
+
+</html>
