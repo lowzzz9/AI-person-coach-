@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>AI Form Coach — Real-Time Body Tracker</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@4.15.0/dist/tf-core.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter@4.15.0/dist/tf-converter.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl@4.15.0/dist/tf-backend-webgl.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@2.0.0/dist/pose-detection.js"></script>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════
+     PAGE: LOGIN
+══════════════════════════════════════════ -->
+<div id="page-login" class="page page-login-bg">
+  <div class="login-wrap">
+    <div class="login-logo">
+      <div class="logo-icon">⚡</div>
+      <h1 class="logo-text">AI FORM COACH</h1>
+      <p class="logo-sub">Real-time body tracking · AI correction · Video guides</p>
+    </div>
+
+    <div class="login-card">
+      <div class="login-card-title">SIGN IN</div>
+
+      <div class="form-group">
+        <label class="form-label">USERNAME</label>
+        <input type="text" id="loginUsername" class="form-input" placeholder="Enter your username" autocomplete="username" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">PASSWORD</label>
+        <input type="password" id="loginPassword" class="form-input" placeholder="Enter your password" autocomplete="current-password" />
+      </div>
+
+      <div id="loginError" class="login-error" style="display:none;"></div>
+
+      <button class="btn btn-solid btn-full" onclick="handleLogin()">▶ START TRAINING</button>
+      <button class="btn btn-ghost btn-full" style="margin-top:10px;" onclick="handleGuest()">→ CONTINUE AS GUEST</button>
+
+      <div class="login-divider"><span>NEW HERE?</span></div>
+      <button class="btn btn-outline btn-full" onclick="handleRegister()">CREATE ACCOUNT</button>
+    </div>
+
+    <p class="login-privacy">🔒 All data stored locally · No server · No tracking</p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     APP SHELL (shown after login)
+══════════════════════════════════════════ -->
+<div id="app-shell" style="display:none;">
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <span class="sidebar-logo-icon">⚡</span>
+      <span class="sidebar-logo-text">FORM COACH</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <button class="nav-item" data-page="dashboard" onclick="showPage('dashboard')">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-label">Dashboard</span>
+      </button>
+      <button class="nav-item" data-page="exercises" onclick="showPage('exercises')">
+        <span class="nav-icon">📋</span>
+        <span class="nav-label">Exercises</span>
+      </button>
+      <button class="nav-item" data-page="workout" onclick="showPage('workout')">
+        <span class="nav-icon">💪</span>
+        <span class="nav-label">Live Training</span>
+      </button>
+      <button class="nav-item" data-page="history" onclick="showPage('history')">
+        <span class="nav-icon">📊</span>
+        <span class="nav-label">History</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user" id="sidebarUser">
+        <div class="user-avatar" id="userAvatar">G</div>
+        <div class="user-info">
+          <div class="user-name" id="userNameSidebar">Guest</div>
+          <div class="user-status"><span class="status-dot"></span>Active</div>
+        </div>
+      </div>
+      <button class="nav-item nav-logout" onclick="handleLogout()">
+        <span class="nav-icon">⏏</span>
+        <span class="nav-label">Logout</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Mobile topbar -->
+  <header class="topbar" id="topbar">
+    <button class="hamburger" onclick="toggleSidebar()">☰</button>
+    <span class="topbar-title">⚡ AI FORM COACH</span>
+    <span class="topbar-user" id="topbarUser">Guest</span>
+  </header>
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+  <!-- ── MAIN CONTENT AREA ── -->
+  <main class="main-area">
+
+    <!-- ══════════════════════════════
+         PAGE: DASHBOARD
+    ══════════════════════════════ -->
+    <div id="page-dashboard" class="page-view" style="display:none;">
+      <div class="page-header">
+        <div>
+          <h2 class="page-title">DASHBOARD</h2>
+          <p class="page-subtitle" id="welcomeMsg">Welcome back!</p>
+        </div>
+        <button class="btn btn-solid" onclick="showPage('exercises')">▶ START WORKOUT</button>
+      </div>
+
+      <!-- Stats -->
+      <div class="dash-stats">
+        <div class="dash-stat-card">
+          <div class="dsc-icon">🔁</div>
+          <div class="dsc-num" id="dashTotalReps">0</div>
+          <div class="dsc-label">TOTAL REPS</div>
+        </div>
+        <div class="dash-stat-card">
+          <div class="dsc-icon">🏆</div>
+          <div class="dsc-num" id="dashTotalSets">0</div>
+          <div class="dsc-label">TOTAL SETS</div>
+        </div>
+        <div class="dash-stat-card">
+          <div class="dsc-icon">🔥</div>
+          <div class="dsc-num" id="dashCalories">0</div>
+          <div class="dsc-label">CALORIES BURNED</div>
+        </div>
+        <div class="dash-stat-card">
+          <div class="dsc-icon">🎯</div>
+          <div class="dsc-num" id="dashFormScore">—</div>
+          <div class="dsc-label">AVG FORM SCORE</div>
+        </div>
+      </div>
+
+      <!-- Resume + Quick actions -->
+      <div class="dash-grid">
+        <div class="card">
+          <div class="card-title">⚡ QUICK ACTIONS</div>
+          <div class="quick-actions">
+            <button class="qa-btn" onclick="showPage('exercises')">
+              <span class="qa-icon">🏋️</span>
+              <span class="qa-label">New Workout</span>
+            </button>
+            <button class="qa-btn" id="resumeBtn" onclick="resumeLastWorkout()" style="display:none;">
+              <span class="qa-icon">▶</span>
+              <span class="qa-label">Resume Last</span>
+            </button>
+            <button class="qa-btn" onclick="showPage('history')">
+              <span class="qa-icon">📊</span>
+              <span class="qa-label">View History</span>
+            </button>
+            <button class="qa-btn" onclick="showPage('workout')">
+              <span class="qa-icon">🎥</span>
+              <span class="qa-label">Open Camera</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">📅 RECENT ACTIVITY</div>
+          <div id="recentActivity">
+            <p style="color:var(--text-muted);font-size:0.9rem;">No workouts yet — start training!</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Exercise Library Preview -->
+      <div class="card" style="margin-top:20px;">
+        <div class="card-title">🏋️ EXERCISE LIBRARY PREVIEW</div>
+        <div class="exercise-grid" id="dashExerciseGrid"></div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════
+         PAGE: EXERCISE SELECTION
+    ══════════════════════════════ -->
+    <div id="page-exercises" class="page-view" style="display:none;">
+      <div class="page-header">
+        <div>
+          <h2 class="page-title">EXERCISE LIBRARY</h2>
+          <p class="page-subtitle">Select an exercise to start tracking</p>
+        </div>
+      </div>
+
+      <!-- Filter -->
+      <div class="filter-row">
+        <span class="filter-label">FILTER:</span>
+        <button class="filter-btn active" data-filter="all" onclick="filterExercises('all', this)">ALL</button>
+        <button class="filter-btn" data-filter="upper" onclick="filterExercises('upper', this)">UPPER BODY</button>
+        <button class="filter-btn" data-filter="lower" onclick="filterExercises('lower', this)">LOWER BODY</button>
+        <button class="filter-btn" data-filter="core" onclick="filterExercises('core', this)">CORE</button>
+        <button class="filter-btn" data-filter="compound" onclick="filterExercises('compound', this)">COMPOUND</button>
+      </div>
+
+      <!-- Library grid -->
+      <div class="lib-grid" id="libraryGrid"></div>
+    </div>
+
+    <!-- ══════════════════════════════
+         PAGE: WORKOUT (LIVE TRAINING)
+    ══════════════════════════════ -->
+    <div id="page-workout" class="page-view" style="display:none;">
+      <div class="page-header">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <button class="btn" onclick="showPage('exercises')" style="padding:8px 14px;font-size:0.8rem;">← CHANGE EXERCISE</button>
+          <div>
+            <h2 class="page-title" id="workoutPageTitle">LIVE TRAINING</h2>
+            <p class="page-subtitle" id="workoutExerciseName">No exercise selected</p>
+          </div>
+        </div>
+        <button class="btn" onclick="showPage('dashboard')" style="padding:8px 14px;font-size:0.8rem;">🏠 DASHBOARD</button>
+      </div>
+
+      <div class="workout-layout">
+
+        <!-- LEFT: Camera + Feedback -->
+        <div class="workout-left">
+          <div class="card">
+            <div class="card-title">🎥 LIVE BODY TRACKING</div>
+            <div class="video-wrapper">
+              <video id="video" autoplay playsinline muted></video>
+              <canvas id="canvas"></canvas>
+              <div class="camera-overlay" id="angleDisplay">JOINT ANGLE: —</div>
+              <div class="no-camera-msg" id="noCameraMsg">
+                <div class="icon">📷</div>
+                <div>Start camera to enable AI body tracking</div>
+                <div style="font-size:0.72rem;font-family:'JetBrains Mono',monospace;color:var(--text-muted);margin-top:6px;">
+                  MoveNet neural network — no data leaves your device
+                </div>
+              </div>
+            </div>
+            <div class="btn-row">
+              <button class="btn btn-solid" id="startCamBtn" onclick="startCamera()">▶ START CAMERA</button>
+              <button class="btn btn-danger" id="stopCamBtn" onclick="stopCamera()" disabled>⏹ STOP</button>
+              <button class="btn" onclick="analyzeCurrentFrame()">📸 ANALYZE</button>
+            </div>
+            <div class="feedback-box">
+              <div class="feedback-label">🎯 REAL-TIME FORM ANALYSIS</div>
+              <div id="liveFormText" style="color:var(--text-white);font-size:0.93rem;line-height:1.6;">
+                Select an exercise, then start your camera.
+              </div>
+            </div>
+            <div class="score-bar-wrap" style="margin-top:10px;">
+              <div class="score-bar-label">
+                <span>FORM SCORE</span>
+                <span id="formScoreNum" style="color:var(--gold-pale);">100</span><span style="color:var(--text-muted);">%</span>
+              </div>
+              <div class="score-bar">
+                <div class="score-fill" id="scoreFill" style="width:100%;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stats + Rep Counter -->
+          <div class="card" style="margin-top:16px;">
+            <div class="card-title">📊 SESSION STATS</div>
+            <div class="stats-row">
+              <div class="stat-box">
+                <span class="stat-num" id="repCount">0</span>
+                <div class="stat-label">TOTAL REPS</div>
+              </div>
+              <div class="stat-box">
+                <span class="stat-num" id="setCount">0</span>
+                <div class="stat-label">SETS DONE</div>
+              </div>
+              <div class="stat-box">
+                <span class="stat-num" id="calorieCount">0</span>
+                <div class="stat-label">CALORIES</div>
+              </div>
+              <div class="stat-box">
+                <span class="stat-num" id="formScoreNum2" style="color:var(--gold-pale);">100</span>
+                <div class="stat-label">FORM %</div>
+              </div>
+            </div>
+            <div class="rep-counter" id="repCounter">READY TO TRAIN</div>
+            <div style="display:flex;align-items:center;gap:12px;margin:14px 0;justify-content:center;">
+              <span style="font-size:0.8rem;color:var(--text-muted);letter-spacing:1px;text-transform:uppercase;">Target reps:</span>
+              <select id="targetRepsSelect" onchange="state.targetSetReps = parseInt(this.value)" class="styled-select">
+                <option value="5">5</option>
+                <option value="8">8</option>
+                <option value="10" selected>10</option>
+                <option value="12">12</option>
+                <option value="15">15</option>
+                <option value="20">20</option>
+              </select>
+            </div>
+            <div class="btn-row">
+              <button class="btn btn-solid" id="startSetBtn" onclick="startSet()" style="flex:1;">▶ START SET</button>
+              <button class="btn btn-danger" onclick="resetWorkout()" style="flex:1;">🔄 RESET</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: Guide + YouTube + AI Chat -->
+        <div class="workout-right">
+          <div class="card" style="overflow-y:auto;max-height:500px;">
+            <div id="correctionPanel">
+              <div class="card-title">📋 FORM CORRECTION GUIDE</div>
+              <p style="color:var(--text-muted);font-size:0.9rem;">Select an exercise to view form cues and video guide.</p>
+            </div>
+            <div class="yt-section" style="margin-top:16px;" id="ytContainer">
+              <div class="yt-placeholder" style="color:var(--text-muted);">📹 Select an exercise to load reference video</div>
+            </div>
+          </div>
+
+          <!-- AI Chat -->
+          <div class="ai-panel" style="margin-top:16px;">
+            <div class="ai-header">
+              <span>🤖 AI FORM COACH</span>
+              <span class="ai-thinking" id="aiThinkingLabel" style="display:none;">thinking…</span>
+            </div>
+            <div class="ai-messages" id="aiMessages"></div>
+            <div class="ai-input-row">
+              <input type="text" id="aiInput" placeholder="Ask about form, muscles, corrections…" autocomplete="off" />
+              <button class="btn btn-solid" onclick="sendAiMessage()" style="white-space:nowrap;">SEND ➤</button>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /workout-layout -->
+    </div>
+
+    <!-- ══════════════════════════════
+         PAGE: HISTORY
+    ══════════════════════════════ -->
+    <div id="page-history" class="page-view" style="display:none;">
+      <div class="page-header">
+        <div>
+          <h2 class="page-title">WORKOUT HISTORY</h2>
+          <p class="page-subtitle">Your training log</p>
+        </div>
+        <button class="btn btn-danger" onclick="clearHistory()" style="padding:8px 18px;font-size:0.85rem;">🗑 CLEAR ALL</button>
+      </div>
+
+      <div class="card">
+        <div class="history-grid" id="historyGrid">
+          <p style="color:var(--text-muted);padding:20px;">No workout history yet. Start training!</p>
+        </div>
+      </div>
+    </div>
+
+  </main><!-- /main-area -->
+</div><!-- /app-shell -->
+
+<script src="exercises.js"></script>
+<script src="pose.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
