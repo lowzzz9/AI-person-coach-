@@ -5,41 +5,41 @@
 // STATE
 // ══════════════════════════════════════════════════════════════════════════
 const state = {
-  // Auth
-  username: null,
-  isGuest: false,
 
-  // Navigation
-  currentPage: null,
+    username: null,
+    isGuest: false,
 
-  // Exercise & workout
-  exercise: null,
-  isSetActive: false,
-  reps: 0,
-  sets: 0,
-  calories: 0,
-  formScore: 100,
-  lastRepTime: 0,
-  repCooldown: 900,
-  repPhase: 'up',
-  setReps: 0,
-  targetSetReps: 10,
+    // Navigation
+    currentPage: null,
 
-  // History
-  workoutHistory: [],
+    // Exercise & workout
+    exercise: null,
+    isSetActive: false,
+    reps: 0,
+    sets: 0,
+    calories: 0,
+    formScore: 100,
+    lastRepTime: 0,
+    repCooldown: 900,
+    repPhase: 'up',
+    setReps: 0,
+    targetSetReps: 10,
 
-  // Plank timer
-  plankTimerInterval: null,
-  plankElapsed: 0,
-  plankDuration: 30,
+    // History
+    workoutHistory: [],
 
-  // Camera
-  isCameraOn: false,
-  tracker: null,
+    // Plank timer
+    plankTimerInterval: null,
+    plankElapsed: 0,
+    plankDuration: 30,
 
-  // AI
-  aiMessages: [],
-  aiThinking: false,
+    // Camera
+    isCameraOn: false,
+    tracker: null,
+
+    // AI
+    aiMessages: [],
+    aiThinking: false,
 };
 
 // ── DOM Helper ─────────────────────────────────────────────────────────────
@@ -53,266 +53,266 @@ const exerciseIcon = key => ({ squat: 'activity', pushup: 'move-down', lunge: 'f
 // INIT
 // ══════════════════════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
-  video  = $('video');
-  canvas = $('canvas');
+    video = $('video');
+    canvas = $('canvas');
 
-  // Keyboard listeners
-  const aiInput = $('aiInput');
-  if (aiInput) aiInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendAiMessage(); });
+    // Keyboard listeners
+    const aiInput = $('aiInput');
+    if (aiInput) aiInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendAiMessage(); });
 
-  // Check persisted session
-  const savedUser = localStorage.getItem('formCoachUser');
-  if (savedUser) {
-    const parsed = JSON.parse(savedUser);
-    state.username = parsed.username;
-    state.isGuest  = parsed.isGuest || false;
-    bootApp();
-  } else {
-    showLoginPage();
-  }
-  renderIcons();
+    // Check persisted session
+    const savedUser = localStorage.getItem('formCoachUser');
+    if (savedUser) {
+        const parsed = JSON.parse(savedUser);
+        state.username = parsed.username;
+        state.isGuest = parsed.isGuest || false;
+        bootApp();
+    } else {
+        showLoginPage();
+    }
+    renderIcons();
 });
 
 // ══════════════════════════════════════════════════════════════════════════
 // AUTH
 // ══════════════════════════════════════════════════════════════════════════
 function showLoginPage() {
-  $('page-login').style.display = 'flex';
-  $('app-shell').style.display  = 'none';
+    $('page-login').style.display = 'flex';
+    $('app-shell').style.display = 'none';
 }
 
 function handleLogin() {
-  const username = $('loginUsername').value.trim();
-  const password = $('loginPassword').value.trim();
-  const errEl    = $('loginError');
+    const username = $('loginUsername').value.trim();
+    const password = $('loginPassword').value.trim();
+    const errEl = $('loginError');
 
-  if (!username) { showLoginError('Please enter a username.'); return; }
-  if (!password) { showLoginError('Please enter a password.'); return; }
+    if (!username) { showLoginError('Please enter a username.'); return; }
+    if (!password) { showLoginError('Please enter a password.'); return; }
 
-  // Check registered accounts in localStorage
-  const accounts = JSON.parse(localStorage.getItem('formCoachAccounts') || '{}');
+    // Check registered accounts in localStorage
+    const accounts = JSON.parse(localStorage.getItem('formCoachAccounts') || '{}');
 
-  if (accounts[username]) {
-    // Existing account - verify password
-    if (accounts[username].password !== password) {
-      showLoginError('Incorrect password. Try again.');
-      return;
+    if (accounts[username]) {
+        // Existing account - verify password
+        if (accounts[username].password !== password) {
+            showLoginError('Incorrect password. Try again.');
+            return;
+        }
+    } else {
+        showLoginError('Account not found. Use "Create Account" to register first.');
+        return;
     }
-  } else {
-    showLoginError('Account not found. Use "Create Account" to register first.');
-    return;
-  }
 
-  errEl.style.display = 'none';
-  loginSuccess(username, false);
+    errEl.style.display = 'none';
+    loginSuccess(username, false);
 }
 
 function handleRegister() {
-  const username = $('loginUsername').value.trim();
-  const password = $('loginPassword').value.trim();
+    const username = $('loginUsername').value.trim();
+    const password = $('loginPassword').value.trim();
 
-  if (!username || username.length < 2) { showLoginError('Username must be at least 2 characters.'); return; }
-  if (!password || password.length < 4) { showLoginError('Password must be at least 4 characters.'); return; }
+    if (!username || username.length < 2) { showLoginError('Username must be at least 2 characters.'); return; }
+    if (!password || password.length < 4) { showLoginError('Password must be at least 4 characters.'); return; }
 
-  const accounts = JSON.parse(localStorage.getItem('formCoachAccounts') || '{}');
+    const accounts = JSON.parse(localStorage.getItem('formCoachAccounts') || '{}');
 
-  if (accounts[username]) {
-    showLoginError('Username already taken. Please choose another.');
-    return;
-  }
+    if (accounts[username]) {
+        showLoginError('Username already taken. Please choose another.');
+        return;
+    }
 
-  accounts[username] = { password, created: new Date().toISOString() };
-  localStorage.setItem('formCoachAccounts', JSON.stringify(accounts));
-  loginSuccess(username, false);
-  toast('Account created. Welcome.', 'success');
+    accounts[username] = { password, created: new Date().toISOString() };
+    localStorage.setItem('formCoachAccounts', JSON.stringify(accounts));
+    loginSuccess(username, false);
+    toast('Account created. Welcome.', 'success');
 }
 
 function handleGuest() {
-  loginSuccess('Guest', true);
+    loginSuccess('Guest', true);
 }
 
 function loginSuccess(username, isGuest) {
-  state.username = username;
-  state.isGuest  = isGuest;
-  localStorage.setItem('formCoachUser', JSON.stringify({ username, isGuest }));
-  bootApp();
+    state.username = username;
+    state.isGuest = isGuest;
+    localStorage.setItem('formCoachUser', JSON.stringify({ username, isGuest }));
+    bootApp();
 }
 
 function handleLogout() {
-  localStorage.removeItem('formCoachUser');
-  state.username = null;
+    localStorage.removeItem('formCoachUser');
+    state.username = null;
 
-  // Stop camera if running
-  if (state.isCameraOn) stopCamera();
+    // Stop camera if running
+    if (state.isCameraOn) stopCamera();
 
-  $('app-shell').style.display = 'none';
-  $('page-login').style.display = 'flex';
-  $('loginUsername').value = '';
-  $('loginPassword').value = '';
-  toast('Logged out.', 'info');
+    $('app-shell').style.display = 'none';
+    $('page-login').style.display = 'flex';
+    $('loginUsername').value = '';
+    $('loginPassword').value = '';
+    toast('Logged out.', 'info');
 }
 
 function showLoginError(msg) {
-  const el = $('loginError');
-  el.textContent = msg;
-  el.style.display = 'block';
+    const el = $('loginError');
+    el.textContent = msg;
+    el.style.display = 'block';
 }
 
 // ══════════════════════════════════════════════════════════════════════════
 // BOOT APP (after login)
 // ══════════════════════════════════════════════════════════════════════════
 function bootApp() {
-  $('page-login').style.display  = 'none';
-  $('app-shell').style.display   = 'flex';
+    $('page-login').style.display = 'none';
+    $('app-shell').style.display = 'flex';
 
-  // Set username UI
-  const initial = (state.username || 'G').charAt(0).toUpperCase();
-  $('userAvatar').textContent    = initial;
-  $('userNameSidebar').textContent = state.username;
-  $('topbarUser').textContent    = state.username;
+    // Set username UI
+    const initial = (state.username || 'G').charAt(0).toUpperCase();
+    $('userAvatar').textContent = initial;
+    $('userNameSidebar').textContent = state.username;
+    $('topbarUser').textContent = state.username;
 
-  // Load data
-  loadHistory();
-  renderExerciseGrid();
-  renderLibrary();
+    // Load data
+    loadHistory();
+    renderExerciseGrid();
+    renderLibrary();
 
-  // Initial AI greeting
-  aiSay(`Hey ${state.username === 'Guest' ? 'there' : state.username}. I am your AI Form Coach. Select an exercise, start your camera, then hit Start Set. I will track your form in real time.`);
+    // Initial AI greeting
+    aiSay(`Hey ${state.username === 'Guest' ? 'there' : state.username}. I am your AI Form Coach. Select an exercise, start your camera, then hit Start Set. I will track your form in real time.`);
 
-  // Navigate to dashboard
-  showPage('dashboard');
-  toast('AI Form Coach ready.', 'success');
+    // Navigate to dashboard
+    showPage('dashboard');
+    toast('AI Form Coach ready.', 'success');
 }
 
 // ══════════════════════════════════════════════════════════════════════════
 // NAVIGATION
 // ══════════════════════════════════════════════════════════════════════════
 function showPage(name) {
-  const pages = ['dashboard', 'exercises', 'workout', 'history'];
-  pages.forEach(p => {
-    const el = $(`page-${p}`);
-    if (el) el.style.display = 'none';
-  });
+    const pages = ['dashboard', 'exercises', 'workout', 'history'];
+    pages.forEach(p => {
+        const el = $(`page-${p}`);
+        if (el) el.style.display = 'none';
+    });
 
-  // Remove active from all nav
-  document.querySelectorAll('.nav-item[data-page]').forEach(el => el.classList.remove('active'));
+    // Remove active from all nav
+    document.querySelectorAll('.nav-item[data-page]').forEach(el => el.classList.remove('active'));
 
-  const target = $(`page-${name}`);
-  if (target) {
-    target.style.display = 'block';
-    target.style.animation = 'none';
-    void target.offsetWidth;
-    target.style.animation = 'fade-up 0.3s ease';
-  }
+    const target = $(`page-${name}`);
+    if (target) {
+        target.style.display = 'block';
+        target.style.animation = 'none';
+        void target.offsetWidth;
+        target.style.animation = 'fade-up 0.3s ease';
+    }
 
-  // Activate nav item
-  const navBtn = document.querySelector(`.nav-item[data-page="${name}"]`);
-  if (navBtn) navBtn.classList.add('active');
+    // Activate nav item
+    const navBtn = document.querySelector(`.nav-item[data-page="${name}"]`);
+    if (navBtn) navBtn.classList.add('active');
 
-  state.currentPage = name;
+    state.currentPage = name;
 
-  // Page-specific setup
-  if (name === 'dashboard')  refreshDashboard();
-  if (name === 'history')    renderHistory();
-  if (name === 'workout' && !state.exercise) {
-    toast('Select an exercise from the library first.', 'info');
-  }
+    // Page-specific setup
+    if (name === 'dashboard') refreshDashboard();
+    if (name === 'history') renderHistory();
+    if (name === 'workout' && !state.exercise) {
+        toast('Select an exercise from the library first.', 'info');
+    }
 
-  // Close mobile sidebar
-  closeSidebar();
-  renderIcons();
+    // Close mobile sidebar
+    closeSidebar();
+    renderIcons();
 }
 
 // Mobile sidebar
 function toggleSidebar() {
-  const sidebar  = $('sidebar');
-  const overlay  = $('sidebarOverlay');
-  sidebar.classList.toggle('open');
-  overlay.classList.toggle('open');
+    const sidebar = $('sidebar');
+    const overlay = $('sidebarOverlay');
+    sidebar.classList.toggle('open');
+    overlay.classList.toggle('open');
 }
 
 function closeSidebar() {
-  $('sidebar').classList.remove('open');
-  $('sidebarOverlay').classList.remove('open');
+    $('sidebar').classList.remove('open');
+    $('sidebarOverlay').classList.remove('open');
 }
 
 // ══════════════════════════════════════════════════════════════════════════
 // DASHBOARD
 // ══════════════════════════════════════════════════════════════════════════
 function refreshDashboard() {
-  // Welcome message - for hero title
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? 'GOOD MORNING,' : hour < 18 ? 'GOOD AFTERNOON,' : 'GOOD EVENING,';
-  const heroTitle = $('welcomeMsg');
-  if (heroTitle) {
-    heroTitle.innerHTML = `WELCOME BACK <span>${state.username === 'Guest' ? 'ATHLETE' : state.username.toUpperCase()}</span>`;
-  }
+    // Welcome message - for hero title
+    const hour = new Date().getHours();
+    const greeting = hour < 12 ? 'GOOD MORNING,' : hour < 18 ? 'GOOD AFTERNOON,' : 'GOOD EVENING,';
+    const heroTitle = $('welcomeMsg');
+    if (heroTitle) {
+        heroTitle.innerHTML = `WELCOME BACK <span>${state.username === 'Guest' ? 'ATHLETE' : state.username.toUpperCase()}</span>`;
+    }
 
-  // Compute cumulative stats from history
-  const totalReps  = state.workoutHistory.reduce((a, r) => a + (r.reps || 0), 0);
-  const totalSets  = state.workoutHistory.length;
-  const totalCals  = state.workoutHistory.reduce((a, r) => a + (r.calories || 0), 0);
-  const avgForm    = totalSets > 0
-    ? Math.round(state.workoutHistory.reduce((a, r) => a + (r.formScore || 0), 0) / totalSets)
-    : null;
+    // Compute cumulative stats from history
+    const totalReps = state.workoutHistory.reduce((a, r) => a + (r.reps || 0), 0);
+    const totalSets = state.workoutHistory.length;
+    const totalCals = state.workoutHistory.reduce((a, r) => a + (r.calories || 0), 0);
+    const avgForm = totalSets > 0 ?
+        Math.round(state.workoutHistory.reduce((a, r) => a + (r.formScore || 0), 0) / totalSets) :
+        null;
 
-  $('dashTotalReps').textContent  = totalReps;
-  $('dashTotalSets').textContent  = totalSets;
-  $('dashCalories').textContent   = Math.round(totalCals);
-  $('dashFormScore').textContent  = avgForm !== null ? `${avgForm}%` : '--';
-  const performanceScore = avgForm !== null ? avgForm : 92;
-  const perfEl = $('performanceScore');
-  const heroReady = $('heroReadiness');
-  const ring = document.querySelector('.performance-ring');
-  if (perfEl) perfEl.textContent = performanceScore;
-  if (heroReady) heroReady.textContent = `${performanceScore}%`;
-  if (ring) ring.style.setProperty('--score', performanceScore);
+    $('dashTotalReps').textContent = totalReps;
+    $('dashTotalSets').textContent = totalSets;
+    $('dashCalories').textContent = Math.round(totalCals);
+    $('dashFormScore').textContent = avgForm !== null ? `${avgForm}%` : '--';
+    const performanceScore = avgForm !== null ? avgForm : 92;
+    const perfEl = $('performanceScore');
+    const heroReady = $('heroReadiness');
+    const ring = document.querySelector('.performance-ring');
+    if (perfEl) perfEl.textContent = performanceScore;
+    if (heroReady) heroReady.textContent = `${performanceScore}%`;
+    if (ring) ring.style.setProperty('--score', performanceScore);
 
 
 
-  // Resume button
-  const resumeBtn = $('resumeBtn');
-  if (state.exercise) {
-    resumeBtn.style.display = 'flex';
-    resumeBtn.querySelector('.qa-label').textContent = `Resume ${EXERCISES[state.exercise]?.name || ''}`;
-  } else {
-    resumeBtn.style.display = 'none';
-  }
+    // Resume button
+    const resumeBtn = $('resumeBtn');
+    if (state.exercise) {
+        resumeBtn.style.display = 'flex';
+        resumeBtn.querySelector('.qa-label').textContent = `Resume ${EXERCISES[state.exercise]?.name || ''}`;
+    } else {
+        resumeBtn.style.display = 'none';
+    }
 
-  // Recent activity
-  renderRecentActivity();
+    // Recent activity
+    renderRecentActivity();
 
-  // Dashboard exercise preview (just first 6)
-  const dashGrid = $('dashExerciseGrid');
-  if (dashGrid) {
-    const keys = Object.keys(EXERCISES).slice(0, 6);
-    dashGrid.innerHTML = keys.map(key => {
-      const ex = EXERCISES[key];
-      return `
+    // Dashboard exercise preview (just first 6)
+    const dashGrid = $('dashExerciseGrid');
+    if (dashGrid) {
+        const keys = Object.keys(EXERCISES).slice(0, 6);
+        dashGrid.innerHTML = keys.map(key => {
+            const ex = EXERCISES[key];
+            return `
         <div class="ex-card" data-ex="${key}" onclick="quickSelectExercise('${key}')">
           <div class="ex-icon"><i data-lucide="${exerciseIcon(key)}"></i></div>
           <div class="ex-name">${ex.name}</div>
           <div class="ex-desc">${ex.musclesWorked?.[0] || ''}</div>
         </div>
       `;
-    }).join('');
-  }
-  renderIcons();
+        }).join('');
+    }
+    renderIcons();
 }
 
 function renderRecentActivity() {
-  const container = $('recentActivity');
-  if (!container) return;
+    const container = $('recentActivity');
+    if (!container) return;
 
-  if (state.workoutHistory.length === 0) {
-    container.innerHTML = `<p style="color:var(--text-muted);font-size:0.88rem;">No workouts yet - start training!</p>`;
-    return;
-  }
+    if (state.workoutHistory.length === 0) {
+        container.innerHTML = `<p style="color:var(--text-muted);font-size:0.88rem;">No workouts yet - start training!</p>`;
+        return;
+    }
 
-  const recent = state.workoutHistory.slice(0, 5);
-  container.innerHTML = recent.map(r => {
-    const scoreClass = r.formScore >= 80 ? 'good' : r.formScore >= 60 ? 'avg' : 'poor';
-    return `
+    const recent = state.workoutHistory.slice(0, 5);
+    container.innerHTML = recent.map(r => {
+        const scoreClass = r.formScore >= 80 ? 'good' : r.formScore >= 60 ? 'avg' : 'poor';
+        return `
       <div class="recent-item">
         <span class="ri-icon"><i data-lucide="activity"></i></span>
         <div>
@@ -322,18 +322,18 @@ function renderRecentActivity() {
         <div class="ri-score ${scoreClass}">${r.formScore}%</div>
       </div>
     `;
-  }).join('');
+    }).join('');
 }
 
 function resumeLastWorkout() {
-  if (state.exercise) {
-    showPage('workout');
-  }
+    if (state.exercise) {
+        showPage('workout');
+    }
 }
 
 function quickSelectExercise(key) {
-  selectExercise(key);
-  showPage('workout');
+    selectExercise(key);
+    showPage('workout');
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -341,53 +341,57 @@ function quickSelectExercise(key) {
 // ══════════════════════════════════════════════════════════════════════════
 // Category map - determines which filter a given exercise belongs to
 const EXERCISE_CATEGORIES = {
-  squat:      ['lower', 'compound'],
-  pushup:     ['upper', 'compound'],
-  lunge:      ['lower'],
-  plank:      ['core'],
-  deadlift:   ['lower', 'compound'],
-  bicepCurl:  ['upper'],
+    squat: ['lower', 'compound'],
+    pushup: ['upper', 'compound'],
+    lunge: ['lower'],
+    plank: ['core'],
+    deadlift: ['lower', 'compound'],
+    bicepCurl: ['upper'],
 };
 
 function filterExercises(filter, btn) {
-  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  renderLibrary(filter);
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderLibrary(filter);
 }
 
 function renderLibrary(filter = 'all') {
-  const container = $('libraryGrid');
-  if (!container) return;
+    const container = $('libraryGrid');
+    if (!container) return;
 
-  const DIFFICULTY = {
-    squat: 'intermediate', pushup: 'beginner', lunge: 'beginner',
-    plank: 'beginner', deadlift: 'advanced', bicepCurl: 'beginner',
-  };
+    const DIFFICULTY = {
+        squat: 'intermediate',
+        pushup: 'beginner',
+        lunge: 'beginner',
+        plank: 'beginner',
+        deadlift: 'advanced',
+        bicepCurl: 'beginner',
+    };
 
-  const entries = Object.entries(EXERCISES).filter(([key]) => {
-    if (filter === 'all') return true;
-    const cats = EXERCISE_CATEGORIES[key] || [];
-    return cats.includes(filter);
-  });
+    const entries = Object.entries(EXERCISES).filter(([key]) => {
+        if (filter === 'all') return true;
+        const cats = EXERCISE_CATEGORIES[key] || [];
+        return cats.includes(filter);
+    });
 
-  if (entries.length === 0) {
-    container.innerHTML = `<div class="card"><p style="color:var(--text-muted);">No exercises in this category.</p></div>`;
-    return;
-  }
+    if (entries.length === 0) {
+        container.innerHTML = `<div class="card"><p style="color:var(--text-muted);">No exercises in this category.</p></div>`;
+        return;
+    }
 
-  container.innerHTML = entries.map(([key, ex]) => {
-    const diff = DIFFICULTY[key] || 'beginner';
-    const cats = EXERCISE_CATEGORIES[key] || [];
-    const catTags = cats.map(c => `<span class="muscle-tag" style="text-transform:uppercase;font-size:0.65rem;">${c}</span>`).join('');
+    container.innerHTML = entries.map(([key, ex]) => {
+                const diff = DIFFICULTY[key] || 'beginner';
+                const cats = EXERCISE_CATEGORIES[key] || [];
+                const catTags = cats.map(c => `<span class="muscle-tag" style="text-transform:uppercase;font-size:0.65rem;">${c}</span>`).join('');
 
-    const stepPreview = ex.steps.slice(0, 3).map((s, i) => `
+                const stepPreview = ex.steps.slice(0, 3).map((s, i) => `
       <div class="lib-step-row">
         <span class="lib-step-num">${i + 1}.</span>
         <span>${s.title} - ${s.desc}</span>
       </div>
     `).join('');
 
-    return `
+                return `
       <div class="lib-card" onclick="selectExerciseAndGo('${key}')">
         <div class="lib-card-header">
           <div class="lib-icon"><i data-lucide="${exerciseIcon(key)}"></i></div>
@@ -828,7 +832,7 @@ async function sendAiMessage() {
 
   try {
     // ── Call our own Express backend — NO API KEY in the browser ─────────
-    const resp = await fetch('/api/chat', {
+    const resp = await fetch('https://ai-person-coach.onrender.com/api/chat', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
