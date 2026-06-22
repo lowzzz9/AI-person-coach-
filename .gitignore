@@ -1,9 +1,10 @@
 # ── Environment — NEVER commit your API keys ──
 .env
+.env.*
+!.env.example
 
 # ── Dependencies ──
 node_modules/
-package-lock.json
 
 # ── Logs ──
 *.log
@@ -24,3 +25,10 @@ desktop.ini
 # ── Build output ──
 dist/
 build/
+backend/data/
+database.db
+database.db-*
+sessions.db
+sessions.db-*
+*.sqlite
+*.sqlite-*

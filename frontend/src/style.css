@@ -1561,6 +1561,56 @@ body::before {
 }
 
 /* ── HISTORY ────────────────────────────────────────────────────────────── */
+.history-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.history-range-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.history-range-btn {
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  padding: 8px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  transition: all var(--transition);
+}
+
+.history-range-btn:hover {
+  color: var(--neon);
+  border-color: var(--border-bright);
+  background: rgba(198,255,0,0.05);
+}
+
+.history-range-btn.active {
+  background: var(--neon);
+  color: var(--text-inverse);
+  border-color: var(--neon);
+}
+
+.history-range-label {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  letter-spacing: 1px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
 .history-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));

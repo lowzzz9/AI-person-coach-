@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>AI Form Coach - Athlete Performance Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="../src/style.css" />
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@4.15.0/dist/tf-core.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter@4.15.0/dist/tf-converter.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl@4.15.0/dist/tf-backend-webgl.min.js"></script>
@@ -274,6 +274,21 @@
         <button class="btn btn-danger" onclick="clearHistory()" style="padding:9px 20px;font-size:0.75rem;"><i data-lucide="trash-2"></i> CLEAR ALL</button>
       </div>
 
+      <div class="history-toolbar">
+        <div class="history-range-group">
+          <button class="history-range-btn" data-range="today" onclick="setHistoryRange('today')">TODAY</button>
+          <button class="history-range-btn" data-range="7d" onclick="setHistoryRange('7d')">7 DAYS</button>
+          <button class="history-range-btn" data-range="30d" onclick="setHistoryRange('30d')">30 DAYS</button>
+          <button class="history-range-btn" data-range="90d" onclick="setHistoryRange('90d')">90 DAYS</button>
+          <button class="history-range-btn" data-range="year" onclick="setHistoryRange('year')">YEAR</button>
+          <button class="history-range-btn active" data-range="all" onclick="setHistoryRange('all')">ALL</button>
+          <button class="history-range-btn history-view-btn active" data-view="daily" onclick="setHistoryView('daily')">DAILY</button>
+          <button class="history-range-btn history-view-btn" data-view="weekly" onclick="setHistoryView('weekly')">WEEKLY</button>
+          <button class="history-range-btn history-view-btn" data-view="monthly" onclick="setHistoryView('monthly')">MONTHLY</button>
+        </div>
+        <div class="history-range-label" id="historyRangeLabel">All time · 0 sets · 0 reps</div>
+      </div>
+
       <div class="card">
         <div class="history-grid" id="historyGrid">
           <p style="color:var(--text-muted);padding:20px;font-size:0.86rem;">No workout history yet. Start training!</p>
@@ -284,8 +299,8 @@
   </main><!-- /main-area -->
 </div><!-- /app-shell -->
 
-<script src="exercises.js"></script>
-<script src="pose.js"></script>
-<script src="app.js"></script>
+<script src="../src/exercises.js"></script>
+<script src="../src/pose.js"></script>
+<script src="../src/app.js"></script>
 </body>
 </html>
