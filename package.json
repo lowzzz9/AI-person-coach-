@@ -15,11 +15,8 @@
     "express": "^4.19.2",
     "express-session": "^1.19.0",
     "groq-sdk": "^0.3.3",
-    "pg": "^8.22.0"
-  },
-  "optionalDependencies": {
-    "connect-sqlite3": "^0.9.16",
-    "sqlite3": "^6.0.1"
+    "pg": "^8.22.0",
+    "pg-mem": "^3.0.14"
   },
   "devDependencies": {
     "nodemon": "^3.1.4"

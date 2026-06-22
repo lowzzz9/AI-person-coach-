@@ -10,7 +10,7 @@ const bcrypt = require('bcrypt');
 const session = require('express-session');
 const PgSession = require('connect-pg-simple')(session);
 const Groq = require('groq-sdk');
-const { database, dbPath, sessionDbPath, dbReady } = require('./db');
+const { database, dbReady } = require('./db');
 
 const app = express();
 const PORT = parseInt(process.env.PORT, 10) || 3000;
@@ -27,20 +27,18 @@ if (!process.env.SESSION_SECRET) console.warn('SESSION_SECRET is not set; using 
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: '2mb' }));
 if (isProduction) app.set('trust proxy', 1);
-const sessionStore = database.kind === 'postgres'
-  ? new PgSession({ pool: database.pool, createTableIfMissing: true })
-  : new (require('connect-sqlite3')(session))({
-    db: path.basename(sessionDbPath),
-    dir: path.dirname(dbPath),
-    concurrentDB: true
-  });
-app.use(session({
-  store: sessionStore,
+const sessionOptions = {
   secret: sessionSecret,
   resave: false,
   saveUninitialized: false,
   cookie: { httpOnly: true, sameSite: 'lax', secure: isProduction, maxAge: 1000 * 60 * 60 * 24 * 30 }
-}));
+};
+
+if (database.mode === 'postgres') {
+  sessionOptions.store = new PgSession({ pool: database.pool, createTableIfMissing: true });
+}
+
+app.use(session(sessionOptions));
 app.use(express.static(FRONTEND_ROOT));
 
 const run = (sql, params = []) => database.run(sql, params);
@@ -58,24 +56,19 @@ function authRequired(req, res, next) {
   next();
 }
 
-function rangeClause(range) {
-  const postgresRanges = {
-    today: 'workout_date >= CURRENT_DATE',
-    '7d': "workout_date >= CURRENT_DATE - INTERVAL '6 days'",
-    '30d': "workout_date >= CURRENT_DATE - INTERVAL '29 days'",
-    '90d': "workout_date >= CURRENT_DATE - INTERVAL '89 days'",
-    year: "workout_date >= date_trunc('year', CURRENT_TIMESTAMP)",
-    all: 'TRUE'
-  };
-  const ranges = {
-    today: "datetime(workout_date) >= datetime('now', 'start of day')",
-    '7d': "datetime(workout_date) >= datetime('now', '-6 days', 'start of day')",
-    '30d': "datetime(workout_date) >= datetime('now', '-29 days', 'start of day')",
-    '90d': "datetime(workout_date) >= datetime('now', '-89 days', 'start of day')",
-    year: "datetime(workout_date) >= datetime('now', 'start of year')",
-    all: '1 = 1'
-  };
-  return (database.kind === 'postgres' ? postgresRanges : ranges)[range] || null;
+function rangeFilter(range) {
+  if (range === 'all') return { where: 'TRUE', params: [] };
+
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+
+  if (range === '7d') start.setDate(start.getDate() - 6);
+  else if (range === '30d') start.setDate(start.getDate() - 29);
+  else if (range === '90d') start.setDate(start.getDate() - 89);
+  else if (range === 'year') start.setMonth(0, 1);
+  else if (range !== 'today') return null;
+
+  return { where: 'workout_date >= ?', params: [start.toISOString()] };
 }
 
 function normalizeWorkout(payload = {}) {
@@ -114,7 +107,7 @@ function toClientWorkout(row) {
   };
 }
 
-async function getSummary(userId, clause = '1 = 1') {
+async function getSummary(userId, filter = { where: 'TRUE', params: [] }) {
   const row = await get(`
     SELECT COUNT(*) AS workouts,
            COALESCE(SUM(reps), 0) AS reps,
@@ -122,8 +115,8 @@ async function getSummary(userId, clause = '1 = 1') {
            COALESCE(SUM(calories), 0) AS calories,
            AVG(form_score) AS averageFormScore
     FROM workout_sessions
-    WHERE user_id = ? AND ${clause}
-  `, [userId]);
+    WHERE user_id = ? AND ${filter.where}
+  `, [userId, ...filter.params]);
   return {
     workouts: row.workouts,
     reps: row.reps,
@@ -188,7 +181,7 @@ app.post('/api/auth/logout', authRequired, (req, res, next) => {
 });
 
 app.get('/api/dashboard/weekly', authRequired, async (req, res, next) => {
-  try { res.json(await getSummary(req.user.id, rangeClause('7d'))); } catch (error) { next(error); }
+  try { res.json(await getSummary(req.user.id, rangeFilter('7d'))); } catch (error) { next(error); }
 });
 
 app.get('/api/dashboard/lifetime', authRequired, async (req, res, next) => {
@@ -198,14 +191,14 @@ app.get('/api/dashboard/lifetime', authRequired, async (req, res, next) => {
 app.get('/api/history', authRequired, async (req, res, next) => {
   try {
     const range = String(req.query.range || 'all');
-    const clause = rangeClause(range);
-    if (!clause) return res.status(400).json({ error: 'Invalid history range.' });
+    const filter = rangeFilter(range);
+    if (!filter) return res.status(400).json({ error: 'Invalid history range.' });
     const rows = await all(`
       SELECT id, exercise_name, reps, sets_completed, calories, form_score, workout_date
-      FROM workout_sessions WHERE user_id = ? AND ${clause}
+      FROM workout_sessions WHERE user_id = ? AND ${filter.where}
       ORDER BY workout_date DESC, id DESC
-    `, [req.user.id]);
-    res.json({ range, workouts: rows.map(toClientWorkout), summary: await getSummary(req.user.id, clause) });
+    `, [req.user.id, ...filter.params]);
+    res.json({ range, workouts: rows.map(toClientWorkout), summary: await getSummary(req.user.id, filter) });
   } catch (error) { next(error); }
 });
 
@@ -263,7 +256,7 @@ app.get('*', (_req, res) => res.sendFile(path.join(FRONTEND_PUBLIC, 'index.html'
 app.use((error, _req, res, _next) => { console.error(error); res.status(500).json({ error: 'Server error.' }); });
 
 dbReady.then(() => {
-  console.log(`Database connected: ${database.kind}`);
+  console.log(`Database connected: ${database.mode}`);
   console.log('Tables verified');
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
   app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
