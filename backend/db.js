@@ -2,7 +2,6 @@
 
 const fs = require('fs');
 const path = require('path');
-const sqlite3 = require('sqlite3').verbose();
 const { Pool } = require('pg');
 
 const dataDir = path.join(__dirname, 'data');
@@ -82,6 +81,8 @@ if (isPostgres) {
     `);
   })();
 } else {
+  // Keep the native SQLite module out of the production/PostgreSQL load path.
+  const sqlite3 = require('sqlite3').verbose();
   fs.mkdirSync(dataDir, { recursive: true });
   const sqlite = new sqlite3.Database(dbPath);
 

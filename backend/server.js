@@ -8,7 +8,6 @@ const path = require('path');
 const crypto = require('crypto');
 const bcrypt = require('bcrypt');
 const session = require('express-session');
-const SQLiteStore = require('connect-sqlite3')(session);
 const PgSession = require('connect-pg-simple')(session);
 const Groq = require('groq-sdk');
 const { database, dbPath, sessionDbPath, dbReady } = require('./db');
@@ -28,10 +27,15 @@ if (!process.env.SESSION_SECRET) console.warn('SESSION_SECRET is not set; using 
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: '2mb' }));
 if (isProduction) app.set('trust proxy', 1);
+const sessionStore = database.kind === 'postgres'
+  ? new PgSession({ pool: database.pool, createTableIfMissing: true })
+  : new (require('connect-sqlite3')(session))({
+    db: path.basename(sessionDbPath),
+    dir: path.dirname(dbPath),
+    concurrentDB: true
+  });
 app.use(session({
-  store: database.kind === 'postgres'
-    ? new PgSession({ pool: database.pool, createTableIfMissing: true })
-    : new SQLiteStore({ db: path.basename(sessionDbPath), dir: path.dirname(dbPath), concurrentDB: true }),
+  store: sessionStore,
   secret: sessionSecret,
   resave: false,
   saveUninitialized: false,
